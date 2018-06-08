@@ -38,6 +38,7 @@ if __name__ == '__main__':
 
     pw1Node = fc.createNode('PlotWidget', pos=(0, -150))
     pw1Node.setPlot(pw1)
+
     #print(pw1Node.update_all_sensors())
 
     pw2 = pg.PlotWidget()
