@@ -30,20 +30,25 @@ class NormalVectorNode(CtrlNode):
 
     def __init__(self, name):
         terminals = {
-            'dataIn': dict(io='in'),
-            'dataOut': dict(io='out'),
+            'XdataIn': dict(io='in'),
+            'ZdataIn': dict(io='in'),
+            'NormalvectorOut': dict(io='out'),
 
         }
-        self._buffer = np.array([])
+        self._bufferX = np.array([])
+        self._bufferZ = np.array([])
         CtrlNode.__init__(self, name, terminals=terminals)
 
     def process(self, **kwds):
         size = int(self.ctrls['size'].value())
-        self._buffer = np.append(self._buffer, kwds['dataIn'])
-        self._buffer = self._buffer[-size:]
+        self._bufferX = np.append(self._bufferX, kwds['XdataIn'])
+        self._bufferX = self._bufferX[-size:]
+        self._bufferZ = np.append(self._bufferZ, kwds['ZdataIn'])
+        self._bufferZ = self._bufferZ[-size:]
+        #output muss dann der ausgerechnete Normalvektor sein
         output = self._buffer
         print(self._buffer)
-        return {'dataOut': output}
+        return {'NormalvectorOut': output}
 
 fclib.registerNodeType(NormalVectorNode, [('Data',)])
 
@@ -127,7 +132,9 @@ if __name__ == '__main__':
     fc.connectTerminals(buffer1Node['dataOut'], pw1Node['In'])
     fc.connectTerminals(buffer2Node['dataOut'], pw2Node['In'])
     fc.connectTerminals(buffer3Node['dataOut'], pw3Node['In'])
-    fc.connectTerminals(buffer1Node['dataOut'], normalVectorNode['dataIn'])
+    fc.connectTerminals(buffer1Node['dataOut'], normalVectorNode['XdataIn'])
+    fc.connectTerminals(buffer3Node['dataOut'], normalVectorNode['ZdataIn'])
+
     print(buffer1Node['dataOut'])
   #  print(wiimote_node.BufferNode.process(buffer1Node))
     #CreateBufferNodeUFFERX")
