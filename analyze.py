@@ -57,7 +57,6 @@ fclib.registerNodeType(NormalVectorNode, [('Data',)])
 
 
 
-
 if __name__ == '__main__':
 #    NormalVectorNode(CtrlNode)
     app = QtGui.QApplication([])
@@ -91,9 +90,7 @@ if __name__ == '__main__':
 
     pw1Node = fc.createNode('PlotWidget', pos=(350, -150))
 
-    pw1Node.setPlot(pw1)
-
-
+    pw1Node.setPlot(pw1
 
 
 
