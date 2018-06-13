@@ -33,12 +33,12 @@ class NormalVectorNode(CtrlNode):
         terminals = {
             'XdataIn': dict(io='in'),
             'ZdataIn': dict(io='in'),
-            'dataOut': dict(io='out'),
+            'XdataOut': dict(io='out'),
+            'YdataOut': dict(io='out'),
 
         }
         self._bufferX = np.array([])
         self._bufferZ = np.array([])
-        self.list = []
         CtrlNode.__init__(self, name, terminals=terminals)
 
     def process(self, **kwds):
@@ -47,49 +47,17 @@ class NormalVectorNode(CtrlNode):
         self._bufferX = self._bufferX[-size:]
         self._bufferZ = np.append(self._bufferZ, kwds['ZdataIn'])
         self._bufferZ = self._bufferZ[-size:]
-        output = self.normalVector()
-        return {'dataOut': output}
-
-    def normalVector(self):
         for i in range(len(self._bufferX)):
-            x = - self._bufferZ[i]
-            y = self._bufferX[i]
+            x = self._bufferX[i] - 512
+            y = self._bufferZ[i] - 512
             normalvectorlocal = (x, y)
-            squareroot = math.sqrt(x*x + y*y)
-            unitnormalvectorx = normalvectorlocal[0] / squareroot
-            unitnormalvectory = normalvectorlocal[1] / squareroot
-            self.list= ((0, 0), (unitnormalvectorx, unitnormalvectory))
-            return self.list
+            unitnormalvectorx = normalvectorlocal[0]
+            unitnormalvectory = normalvectorlocal[1]
+            self.xlist = (0, unitnormalvectorx)
+            self.ylist = (0, unitnormalvectory)
+            return {'XdataOut': self.xlist, 'YdataOut': self.ylist}
 
 fclib.registerNodeType(NormalVectorNode, [('Data',)])
-
-class PlotCurveNode(CtrlNode):
-
-    nodeName = "PlotCurveNode"
-    uiTemplate = [
-        ('size',  'spin', {'value': 32.0, 'step': 1.0, 'bounds': [0.0, 128.0]}),
-    ]
-
-    def __init__(self, name):
-        terminals = {
-            'dataIn': dict(io='in'),
-            'plot': dict(io='out'),
-
-        }
-        self.input = np.array([])
-        self.output = np.array([])
-        CtrlNode.__init__(self, name, terminals=terminals)
-
-    def getVector(self):
-        self.output = self.input
-
-    def process(self, **kwds):
-        size = int(self.ctrls['size'].value())
-        self.input = np.append(self.input, kwds['dataIn'])
-        self.getVector()
-        return {'plot': self.output}
-
-fclib.registerNodeType(PlotCurveNode, [('Data',)])
 
 if __name__ == '__main__':
 #    NormalVectorNode(CtrlNode)
@@ -136,6 +104,7 @@ if __name__ == '__main__':
     pwNormalve = pg.PlotWidget()
     layout.addWidget(pwNormalve, 1, 2)
     pwNormalve.setYRange(-1, 1)
+    pwNormalve.setXRange(-1, 1)
 
     pwNormalveNode = fc.createNode('PlotWidget', pos=(300, 150))
     pwNormalveNode.setPlot(pwNormalve)
@@ -146,7 +115,7 @@ if __name__ == '__main__':
     buffer2Node = fc.createNode('Buffer', pos=(150, 0))
     buffer3Node = fc.createNode('Buffer', pos=(150, 150))
     normalVectorNode = fc.createNode('NormalVector', pos=(150, 300))
-    plotCurve = fc.createNode('PlotCurveNode', pos=(200, 100))
+    plotCurve = fc.createNode('PlotCurve', pos=(200, 100))
 
     fc.connectTerminals(wiimoteNode['accelX'], buffer1Node['dataIn'])
     fc.connectTerminals(wiimoteNode['accelY'], buffer2Node['dataIn'])
@@ -156,7 +125,8 @@ if __name__ == '__main__':
     fc.connectTerminals(buffer3Node['dataOut'], pw3Node['In'])
     fc.connectTerminals(buffer1Node['dataOut'], normalVectorNode['XdataIn'])
     fc.connectTerminals(buffer3Node['dataOut'], normalVectorNode['ZdataIn'])
-    fc.connectTerminals(normalVectorNode['dataOut'], plotCurve['dataIn'])
+    fc.connectTerminals(normalVectorNode['XdataOut'], plotCurve['x'])
+    fc.connectTerminals(normalVectorNode['YdataOut'], plotCurve['y'])
     fc.connectTerminals(plotCurve['plot'], pwNormalveNode['In'])
 
     win.show()
