@@ -53,9 +53,9 @@ class NormalVectorNode(CtrlNode):
     def normalVector(self):
         for i in range(len(self._bufferX)):
             x = - self._bufferZ[i]
-            z = self._bufferX[i]
-            normalvectorlocal = x - self._bufferX[i], z - self._bufferZ[i]
-            squareroot = math.sqrt(x*x + z*z)
+            y = self._bufferX[i]
+            normalvectorlocal = (x, y)
+            squareroot = math.sqrt(x*x + y*y)
             unitnormalvectorx = normalvectorlocal[0] / squareroot
             unitnormalvectory = normalvectorlocal[1] / squareroot
             self.list= ((0, 0), (unitnormalvectorx, unitnormalvectory))
