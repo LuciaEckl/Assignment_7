@@ -11,6 +11,7 @@ import pyqtgraph.flowchart.library as fclib
 from pyqtgraph.Qt import QtGui, QtCore
 import pyqtgraph as pg
 import numpy as np
+import math
 import wiimote
 import wiimote_node
 import time
@@ -32,11 +33,12 @@ class NormalVectorNode(CtrlNode):
         terminals = {
             'XdataIn': dict(io='in'),
             'ZdataIn': dict(io='in'),
-            'NormalvectorOut': dict(io='out'),
+            'dataOut': dict(io='out'),
 
         }
         self._bufferX = np.array([])
         self._bufferZ = np.array([])
+        self.list = []
         CtrlNode.__init__(self, name, terminals=terminals)
 
     def process(self, **kwds):
@@ -45,17 +47,49 @@ class NormalVectorNode(CtrlNode):
         self._bufferX = self._bufferX[-size:]
         self._bufferZ = np.append(self._bufferZ, kwds['ZdataIn'])
         self._bufferZ = self._bufferZ[-size:]
-        #output muss dann der ausgerechnete Normalvektor sein
-        output = self._buffer
-        print(self._buffer)
-        return {'NormalvectorOut': output}
+        output = self.normalVector()
+        return {'dataOut': output}
+
+    def normalVector(self):
+        for i in range(len(self._bufferX)):
+            x = - self._bufferZ[i]
+            z = self._bufferX[i]
+            normalvectorlocal = x - self._bufferX[i], z - self._bufferZ[i]
+            squareroot = math.sqrt(x*x + z*z)
+            unitnormalvectorx = normalvectorlocal[0] / squareroot
+            unitnormalvectory = normalvectorlocal[1] / squareroot
+            self.list= ((0, 0), (unitnormalvectorx, unitnormalvectory))
+            return self.list
 
 fclib.registerNodeType(NormalVectorNode, [('Data',)])
 
+class PlotCurveNode(CtrlNode):
 
+    nodeName = "PlotCurveNode"
+    uiTemplate = [
+        ('size',  'spin', {'value': 32.0, 'step': 1.0, 'bounds': [0.0, 128.0]}),
+    ]
 
+    def __init__(self, name):
+        terminals = {
+            'dataIn': dict(io='in'),
+            'plot': dict(io='out'),
 
+        }
+        self.input = np.array([])
+        self.output = np.array([])
+        CtrlNode.__init__(self, name, terminals=terminals)
 
+    def getVector(self):
+        self.output = self.input
+
+    def process(self, **kwds):
+        size = int(self.ctrls['size'].value())
+        self.input = np.append(self.input, kwds['dataIn'])
+        self.getVector()
+        return {'plot': self.output}
+
+fclib.registerNodeType(PlotCurveNode, [('Data',)])
 
 if __name__ == '__main__':
 #    NormalVectorNode(CtrlNode)
@@ -66,16 +100,6 @@ if __name__ == '__main__':
     win.setCentralWidget(cw)
     layout = QtGui.QGridLayout()
     cw.setLayout(layout)
-
-
-
-
-
-
-
-
-
-
 
     # Create an empty flowchart with a single input and output
     fc = Flowchart(terminals={
@@ -90,19 +114,19 @@ if __name__ == '__main__':
 
     pw1Node = fc.createNode('PlotWidget', pos=(350, -150))
 
-    pw1Node.setPlot(pw1
+    pw1Node.setPlot(pw1)
 
 
 
     pw2 = pg.PlotWidget()
-    layout.addWidget(pw2, 0, 1)
+    layout.addWidget(pw2, 0, 2)
     pw2.setYRange(0, 1024)
 
     pw2Node = fc.createNode('PlotWidget', pos=(350, 0))
     pw2Node.setPlot(pw2)
 
     pw3 = pg.PlotWidget()
-    layout.addWidget(pw3, 0, 1)
+    layout.addWidget(pw3, 1, 1)
     pw3.setYRange(0, 1024)
 
     pw3Node = fc.createNode('PlotWidget', pos=(350, 150))
@@ -110,11 +134,11 @@ if __name__ == '__main__':
 
 
     pwNormalve = pg.PlotWidget()
-    layout.addWidget(pw3, 0, 1)
-    pw3.setYRange(0, 1024)
+    layout.addWidget(pwNormalve, 1, 2)
+    pwNormalve.setYRange(-1, 1)
 
-    pw3Node = fc.createNode('PlotWidget', pos=(350, 150))
-    pw3Node.setPlot(pw3)
+    pwNormalveNode = fc.createNode('PlotWidget', pos=(300, 150))
+    pwNormalveNode.setPlot(pwNormalve)
 
 
     wiimoteNode = fc.createNode('Wiimote', pos=(0, 0),)
@@ -122,6 +146,7 @@ if __name__ == '__main__':
     buffer2Node = fc.createNode('Buffer', pos=(150, 0))
     buffer3Node = fc.createNode('Buffer', pos=(150, 150))
     normalVectorNode = fc.createNode('NormalVector', pos=(150, 300))
+    plotCurve = fc.createNode('PlotCurveNode', pos=(200, 100))
 
     fc.connectTerminals(wiimoteNode['accelX'], buffer1Node['dataIn'])
     fc.connectTerminals(wiimoteNode['accelY'], buffer2Node['dataIn'])
@@ -131,23 +156,10 @@ if __name__ == '__main__':
     fc.connectTerminals(buffer3Node['dataOut'], pw3Node['In'])
     fc.connectTerminals(buffer1Node['dataOut'], normalVectorNode['XdataIn'])
     fc.connectTerminals(buffer3Node['dataOut'], normalVectorNode['ZdataIn'])
-
-    print(buffer1Node['dataOut'])
-  #  print(wiimote_node.BufferNode.process(buffer1Node))
-    #CreateBufferNodeUFFERX")
+    fc.connectTerminals(normalVectorNode['dataOut'], plotCurve['dataIn'])
+    fc.connectTerminals(plotCurve['plot'], pwNormalveNode['In'])
 
     win.show()
 
-    print(BufferNode.outputValues(buffer1Node))
-    print(pw1.getPlotItem().dataItems)
-    print(wiimote_node.WiimoteNode.outputValues(wiimoteNode))
-   # print(BufferNode.)
-
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         QtGui.QApplication.instance().exec_()
-     #   print(BufferNode.outputValues(buffer1Node))
-     #   print(pw1.getPlotItem().dataItems)
-  #  if (sys.flags.interactive == 1) or  hasattr(QtCore, 'PYQT_VERSION'):
-     #   QtGui.QApplication.instance().exec_()
-     #   print(BufferNode.outputValues(buffer1Node))
-      #  print(pw1.getPlotItem().dataItems)
